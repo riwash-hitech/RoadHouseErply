@@ -630,6 +630,8 @@ class ErplySalesOrderService
 
     public function pushRefundReturnV2($req)
     {
+
+    dd('here');
         $sql = ShopifySalesReturn::join("newsystem_orders", "newsystem_orders.newSystemOrderNumber", "newsystem_refunds.newSystemOrderNumber")
             ->join("newsystem_customers", "newsystem_customers.newSystemMemberID", "newsystem_orders.newSystemCustomerID")
             ->join("newsystem_order_delivery", "newsystem_orders.newSystemOrderID", "newsystem_order_delivery.newSystemOrderID")
@@ -746,8 +748,6 @@ class ErplySalesOrderService
 
             $res = $this->api->sendRequest($bundle_array, $param, 1);
             // dump('ERPLY Response : ', $res);
-
-            //add logic of delete credit invoice (if refund and payment already done)
             
             $response_invoice_id_string = '';
             if ($res['status']['errorCode'] == 0 && !empty($res['requests'])) {
@@ -755,10 +755,10 @@ class ErplySalesOrderService
                     if ($res['requests'][$key]['status']['errorCode'] == 0) {
                         $response_invoice_id_string .= ($key > 0) ? ',' . $res['requests'][$key]['records'][0]['invoiceID'] : $res['requests'][$key]['records'][0]['invoiceID'];
                         $response_array[] = $res['requests'][$key]['records'][0]['invoiceID'];
-
-                        
                     }
                 }
+
+            //add logic of delete credit invoice (if refund and payment already done)
 
                 if (isset($shipping_array['creditToDocumentID'])) {
                     $payments = $this->getPaymentByDocumentId($shipping_array, $param, $so);
@@ -811,7 +811,6 @@ class ErplySalesOrderService
 
     public function getPaymentByDocumentId($shippingArray, $param, $refundsModel)
     {
-
         $bundleArray[] = [
             'requestName' => 'getPayments',
             'documentID' => $shippingArray['creditToDocumentID'],
@@ -819,7 +818,6 @@ class ErplySalesOrderService
             "sessionKey" => $shippingArray['sessionKey'],
             "clientCode" => $shippingArray['clientCode'],
         ];
-
 
         $jsonData = json_encode($bundleArray, true);
 
@@ -851,13 +849,11 @@ class ErplySalesOrderService
                     ];
                 }
 
-
                 if (count($deleteArray) > 0) {
 
                     $deleteJsonData = json_encode($deleteArray, true);
 
                     $deleteResponse  = $this->api->sendRequest($deleteJsonData, $param, 1);
-
 
                     if (isset($deleteResponse['status']) && $deleteResponse['status']['responseStatus'] == 'ok'  && $deleteResponse['status']['errorCode'] == 0) {
                         //after success update flag  1 = deleted, 0 is not deleted and 2 is if getting any error of deleted 
