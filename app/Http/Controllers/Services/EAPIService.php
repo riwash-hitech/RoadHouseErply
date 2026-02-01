@@ -30,6 +30,7 @@ class EAPIService //implements ApiInterface
 
     public function sendRequest($url, $param, $isBulk = 0, $errorFlag = 0, $sessionKeyFlag = 1)
     {
+
         $param["sessionKey"] = $this->client->sessionKey;
         if($isBulk == 0)$param["clientCode"] = $this->client->clientCode;
 

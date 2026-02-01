@@ -598,7 +598,6 @@ class ErplySalesOrderService
             }
         }
 
-        dd($bundleArray);
         if ($isDebug == 3) {
             dd($bundleArray);
             die;
@@ -664,7 +663,6 @@ class ErplySalesOrderService
     // Create Credit Tax Invoice 
     public function processCreditTaxInvoice($result)
     {
-
         $response_array = [];
         foreach ($result as $so) {
             $bundle_array = [];
@@ -746,27 +744,26 @@ class ErplySalesOrderService
                 "sessionKey" => $this->api->client->sessionKey
             );
 
-
-
             $res = $this->api->sendRequest($bundle_array, $param, 1);
             // dump('ERPLY Response : ', $res);
 
-
             //add logic of delete credit invoice (if refund and payment already done)
-            if (isset($shipping_array['creditToDocumentID'])) {
-                $payments = $this->getPaymentByDocumentId($shipping_array, $param, $so);
-
-            }
-
-
+            
             $response_invoice_id_string = '';
             if ($res['status']['errorCode'] == 0 && !empty($res['requests'])) {
                 foreach ($req_refunds as $key => $c) {
                     if ($res['requests'][$key]['status']['errorCode'] == 0) {
                         $response_invoice_id_string .= ($key > 0) ? ',' . $res['requests'][$key]['records'][0]['invoiceID'] : $res['requests'][$key]['records'][0]['invoiceID'];
                         $response_array[] = $res['requests'][$key]['records'][0]['invoiceID'];
+
+                        
                     }
                 }
+
+                if (isset($shipping_array['creditToDocumentID'])) {
+                    $payments = $this->getPaymentByDocumentId($shipping_array, $param, $so);
+                }
+                
                 if ($response_invoice_id_string != '') {
                     ShopifySalesReturn::where("shopifyRefundString", $so->shopifyRefundString)->update(['erplyPending' => 0, 'erply_credit_invoice_ids' => $response_invoice_id_string]);
                 }
@@ -825,10 +822,10 @@ class ErplySalesOrderService
 
 
         $jsonData = json_encode($bundleArray, true);
+
         $response  = $this->api->sendRequest($jsonData, $param, 1);
 
-
-        if (isset($response['status']) && $response['status']['responseStatus'] == 'ok') {
+        if (isset($response['status']) && $response['status']['responseStatus'] == 'ok' && $response['status']['errorCode'] == 0) {
             if (isset($response['requests'])) {
                 $records = $response['requests'][0]['records'];
                 //here type 4 mean credit invoice so we need to delete that 
@@ -847,7 +844,7 @@ class ErplySalesOrderService
                     //delete refund payment 
 
                     $deleteArray[] = [
-                        'requestName' => 'deletepayment',
+                        'requestName' => 'deletePayment',
                         'paymentID' => $paymentId,
                         'sessionKey' => $shippingArray['sessionKey'],
                         "clientCode" => $shippingArray['clientCode'],
@@ -861,7 +858,8 @@ class ErplySalesOrderService
 
                     $deleteResponse  = $this->api->sendRequest($deleteJsonData, $param, 1);
 
-                    if (isset($deleteResponse['status']) && $deleteResponse['status']['responseStatus'] == 'ok') {
+
+                    if (isset($deleteResponse['status']) && $deleteResponse['status']['responseStatus'] == 'ok'  && $deleteResponse['status']['errorCode'] == 0) {
                         //after success update flag  1 = deleted, 0 is not deleted and 2 is if getting any error of deleted 
                         //note it only delete if type is 4 so if there was no type 4 and deleted flag is 0 it does not mean it pending
 
@@ -871,13 +869,15 @@ class ErplySalesOrderService
                         ];
 
                         $refundsModel->update([
-                            'credit_invoice_delete' => 1,
+                            'credit_invoice_deleted' => 1,
                             'deleted_payment_id'    => json_encode($jsonDataOfDeleted),
                         ]);
                     } else {
 
-                        $refundsModel->update(['credit_invoice_delete' => 2]);
+                        $refundsModel->update(['credit_invoice_deleted' => 2]);
                     }
+                }else{
+                    return 'not found';
                 }
             }
         }

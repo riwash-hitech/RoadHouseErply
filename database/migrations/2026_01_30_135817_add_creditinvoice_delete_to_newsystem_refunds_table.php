@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('newsystem_refunds', function (Blueprint $table) {
-            $table->integer('credit_invoice_delete')->default(0)->nullable();
+            $table->integer('credit_invoice_deleted')->default(0)->nullable();
             $table->json('deleted_payment_id')->nullable();
         });
     }
@@ -23,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('newsystem_refunds', function (Blueprint $table) {
-            $table->dropColumn(['credit_invoice_delete', 'deleted_payment_id']);
+            $table->dropColumn(['credit_invoice_deleted', 'deleted_payment_id']);
         });
     }
 };
