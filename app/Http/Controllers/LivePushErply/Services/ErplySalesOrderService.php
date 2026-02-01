@@ -748,7 +748,7 @@ class ErplySalesOrderService
 
 
 
-            // $res = $this->api->sendRequest($bundle_array, $param, 1);
+            $res = $this->api->sendRequest($bundle_array, $param, 1);
             // dump('ERPLY Response : ', $res);
 
 
@@ -756,10 +756,8 @@ class ErplySalesOrderService
             if (isset($shipping_array['creditToDocumentID'])) {
                 $payments = $this->getPaymentByDocumentId($shipping_array, $param, $so);
 
-                dd($payments);
             }
 
-            dd('out');
 
             $response_invoice_id_string = '';
             if ($res['status']['errorCode'] == 0 && !empty($res['requests'])) {
@@ -856,7 +854,6 @@ class ErplySalesOrderService
                     ];
                 }
 
-                dd('here');
 
                 if (count($deleteArray) > 0) {
 
