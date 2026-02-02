@@ -631,7 +631,6 @@ class ErplySalesOrderService
     public function pushRefundReturnV2($req)
     {
 
-    dd('here');
         $sql = ShopifySalesReturn::join("newsystem_orders", "newsystem_orders.newSystemOrderNumber", "newsystem_refunds.newSystemOrderNumber")
             ->join("newsystem_customers", "newsystem_customers.newSystemMemberID", "newsystem_orders.newSystemCustomerID")
             ->join("newsystem_order_delivery", "newsystem_orders.newSystemOrderID", "newsystem_order_delivery.newSystemOrderID")
@@ -758,12 +757,12 @@ class ErplySalesOrderService
                     }
                 }
 
-            //add logic of delete credit invoice (if refund and payment already done)
+                //add logic of delete credit invoice (if refund and payment already done)
 
                 if (isset($shipping_array['creditToDocumentID'])) {
                     $payments = $this->getPaymentByDocumentId($shipping_array, $param, $so);
                 }
-                
+
                 if ($response_invoice_id_string != '') {
                     ShopifySalesReturn::where("shopifyRefundString", $so->shopifyRefundString)->update(['erplyPending' => 0, 'erply_credit_invoice_ids' => $response_invoice_id_string]);
                 }
@@ -832,6 +831,7 @@ class ErplySalesOrderService
                     ->pluck('paymentID')
                     ->values()
                     ->toArray();
+
 
                 $deleteArray = [];
 

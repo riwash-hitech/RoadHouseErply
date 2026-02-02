@@ -17,7 +17,6 @@ class EAPIService //implements ApiInterface
 
     public function __construct(EAPI $api, Client $client)
     {
-        
         // if (session_status() === PHP_SESSION_NONE) {
         //     session_start();
         // }
