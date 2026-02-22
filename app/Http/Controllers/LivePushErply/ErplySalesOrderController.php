@@ -31,4 +31,8 @@ class ErplySalesOrderController extends Controller
     {
         return $this->service->pushRefundReturnV2($req);
     }
+
+    public function deletePaymentCredit(Request $req){
+        return $this->service->deletePaymentCredit($req);
+    }
 }

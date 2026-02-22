@@ -1,57 +1,14 @@
 <?php
 
-use App\Http\Controllers\DBConnectionController;
-use App\Http\Controllers\LivePushErply\ProductCategoryController;
-use App\Http\Controllers\LivePushErply\ProductController;
-use App\Http\Controllers\LivePushErply\ProductDimensionController;
-use App\Http\Controllers\LivePushErply\ProductGroupController;
-use App\Http\Controllers\LivePushErply\StoreLocationController;
-use App\Http\Controllers\Paei\GetAssortmentController;
-use App\Http\Controllers\Paei\GetCashInsController;
-use App\Http\Controllers\Paei\GetCouponController;
-use App\Http\Controllers\Paei\GetCurrencyController;
-use App\Http\Controllers\Paei\GetCustomerController;
-use App\Http\Controllers\Paei\GetCustomerGroupController;
-use App\Http\Controllers\Paei\GetDimensionController;
-use App\Http\Controllers\Paei\GetEmployeeController;
-use App\Http\Controllers\Paei\GetGiftCardController;
-use App\Http\Controllers\Paei\GetInventoryRegistrationController;
-use App\Http\Controllers\Paei\GetInventoryWriteOffController;
-use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use App\Http\Controllers\Paei\GetMatrixProductController;
-use App\Http\Controllers\Paei\GetPriorityGroupController;
-use App\Http\Controllers\Paei\GetOpenningClosingController;
-use App\Http\Controllers\Paei\GetPaymentController;
-use App\Http\Controllers\Paei\GetPaymentTypeController;
-use App\Http\Controllers\Paei\GetPricelistController;
-use App\Http\Controllers\Paei\GetProductCategoryController;
-use App\Http\Controllers\Paei\GetProductGroupController;
-use App\Http\Controllers\Paei\GetProductPictureController;
-use App\Http\Controllers\Paei\GetPurchaseDocumentController;
-use App\Http\Controllers\Paei\GetReasonCodeController;
-use App\Http\Controllers\Paei\GetSalesDocumentController;
-use App\Http\Controllers\Paei\GetSupplierController;
-use App\Http\Controllers\Paei\GetUserOperationLogController;
-use App\Http\Controllers\Paei\GetWarehouseController;
-use App\Http\Controllers\PswClientLive\PswLiveProductController;
-use App\Http\Controllers\ProductBulkDeleteController;
-use App\Http\Controllers\ProductStockController;
-use App\Http\Controllers\AxToSynccareController;
-use App\Http\Controllers\LivePushErply\ErplyCustomerController;
-use App\Http\Controllers\LivePushErply\ErplySalesOrderController;
-use App\Http\Controllers\LogsController;
-use App\Http\Controllers\PswClientLive\PswLiveStoreLocationController;
-use App\Models\InventoryRegistration;
+use Illuminate\Support\Facades\{DB, Request, Route};
+use App\Http\Controllers\{AxToSynccareController, DBConnectionController, LogsController, ProductBulkDeleteController, ProductStockController, ProfileController};
+use App\Http\Controllers\LivePushErply\{ErplyCustomerController, ErplySalesOrderController, ProductCategoryController, ProductController, ProductDimensionController, ProductGroupController, StoreLocationController};
+use App\Http\Controllers\Paei\{GetAssortmentController, GetCashInsController, GetCouponController, GetCurrencyController, GetCustomerController, GetCustomerGroupController, GetDimensionController, GetEmployeeController, GetGiftCardController, GetInventoryRegistrationController, GetInventoryWriteOffController, GetMatrixProductController, GetOpenningClosingController, GetPaymentController, GetPaymentTypeController, GetPricelistController, GetPriorityGroupController, GetProductCategoryController, GetProductGroupController, GetProductPictureController, GetProductPictureV2Controller, GetPurchaseDocumentController, GetReasonCodeController, GetSalesDocumentController, GetSupplierController, GetUserOperationLogController, GetWarehouseController};
+use App\Http\Controllers\PswClientLive\{PswLiveProductController, PswLiveStoreLocationController};
+use App\Models\{InventoryRegistration, StockColorSize, StockDetail, Warehouse};
 use App\Models\PAEI\Warehouse as PAEIWarehouse;
-use App\Models\StockColorSize;
-use App\Models\StockDetail;
-use App\Models\Warehouse;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Request;
-use App\Http\Controllers\Paei\GetProductPictureV2Controller;
+use Inertia\Inertia;
 
 
 /*
@@ -183,6 +140,7 @@ Route::get('/push-shopify-sales-order', [ErplySalesOrderController::class, 'push
 Route::get('/push-shopify-order-delivery-address', [ErplySalesOrderController::class, 'saveDeliveryAddress']);
 Route::get('/push-shopify-sales-refund-return', [ErplySalesOrderController::class, 'pushRefundReturn']);
 Route::get('/v2/push-shopify-sales-refund-return', [ErplySalesOrderController::class, 'pushRefundReturnV2']);
+Route::get('/v2/delete-payment-credit', [ErplySalesOrderController::class, 'deletePaymentCredit']);
 
 
 

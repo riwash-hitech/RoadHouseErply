@@ -2,20 +2,11 @@
 
 namespace App\Http\Controllers\LivePushErply\Services;
 
+use Illuminate\Http\Request;
 use App\Http\Controllers\Services\EAPIService;
 use App\Models\GiftCard;
-use App\Models\PAEI\MatrixProduct;
-use App\Models\Shopify\ShopifySalesOrder;
-use App\Models\Shopify\ShopifySalesOrderLine;
-use App\Models\Shopify\ShopifySalesReturn;
-use App\Models\Shopify\ShopifySalesOrderDelivery;
-use App\Models\PAEI\VariationProduct;
-use Illuminate\Http\Request;
-// use Modules\Shopify\App\Traits\ShopifyTrait;
-use App\Models\PAEI\Warehouse;
-
-use App\Models\PAEI\GiftCard as NewSystemGiftCard;
-use App\Models\Shopify\ShopifyCustomer;
+use App\Models\PAEI\{GiftCard as NewSystemGiftCard, MatrixProduct, VariationProduct, Warehouse};
+use App\Models\Shopify\{ShopifyCustomer, ShopifySalesOrder, ShopifySalesOrderDelivery, ShopifySalesOrderLine, ShopifySalesReturn};
 
 class ErplySalesOrderService
 {
@@ -31,6 +22,7 @@ class ErplySalesOrderService
 
     public function pushSalesOrders($req)
     {
+
 
         if ($req->dateflag) {
             date_default_timezone_set('Australia/Melbourne');
@@ -239,6 +231,8 @@ class ErplySalesOrderService
             "responseType" => "json",
             "sessionKey" => $this->api->client->sessionKey,
         );
+
+
         $res = $this->api->sendRequest($BundleArray, $param, 1);
 
         if ($res['status']['errorCode'] == 0 && !empty($res['requests'])) {
@@ -655,7 +649,7 @@ class ErplySalesOrderService
         $response = $this->processCreditTaxInvoice($result);
 
         if (!empty($response)) {
-            return response()->json(["status" => $response['type'], "response" => $response['response']]);
+            return response()->json(["status" => $response['type'], "response" => $response['response'], "deletedPayments" => $response['deletedPayments']]);
         } else {
             return response()->json(["status" => "fail", "response" => "Failed on response !!!"]);
         }
@@ -664,6 +658,7 @@ class ErplySalesOrderService
     // Create Credit Tax Invoice 
     public function processCreditTaxInvoice($result)
     {
+        $payments = [];
         $response_array = [];
         foreach ($result as $so) {
             $bundle_array = [];
@@ -671,7 +666,6 @@ class ErplySalesOrderService
 
             // Change the status to 2 for processing 
             ShopifySalesReturn::where("shopifyRefundString", $so->shopifyRefundString)->update(['updated_at' => date('Y-m-d H:i:s'), "erplyPending" => 2]);
-
             // $webshopNum = [];
             // $webshopNum[] = "R" . substr($so->newSystemOrderNumber, 1);
             // $webshopNum = json_encode($webshopNum, true);
@@ -681,6 +675,7 @@ class ErplySalesOrderService
                 $returnItemsAmount = explode(",", $so->refund_product_price);
                 $returnItemsQty = explode(",", $so->refund_product_qty);
                 $returnLocationId = explode(",", $so->refund_location_id);
+                
 
                 foreach ($returnItems as $key => $code) {
 
@@ -702,7 +697,6 @@ class ErplySalesOrderService
                     $product = VariationProduct::where("code", $code)->first();
                     if (empty($product))
                         continue; // Skip
-
                     // now set product stock pending
                     if (@$product->parentProductID > 0)
                         MatrixProduct::where("productID", $product->parentProductID)->update(["shopifySohPending" => 1]);
@@ -730,7 +724,6 @@ class ErplySalesOrderService
             }
 
 
-            // dd($bundleArray);
             if (count($req_refunds) < 1)
                 continue; // Skip
 
@@ -745,9 +738,11 @@ class ErplySalesOrderService
                 "sessionKey" => $this->api->client->sessionKey
             );
 
+
             $res = $this->api->sendRequest($bundle_array, $param, 1);
+
             // dump('ERPLY Response : ', $res);
-            
+
             $response_invoice_id_string = '';
             if ($res['status']['errorCode'] == 0 && !empty($res['requests'])) {
                 foreach ($req_refunds as $key => $c) {
@@ -758,9 +753,13 @@ class ErplySalesOrderService
                 }
 
                 //add logic of delete credit invoice (if refund and payment already done)
-
-                if (isset($shipping_array['creditToDocumentID'])) {
-                    $payments = $this->getPaymentByDocumentId($shipping_array, $param, $so);
+                 $shippingData = [
+                    "sessionKey" => $this->api->client->sessionKey,
+                    "clientCode" => $this->api->client->clientCode,
+                    "creditToDocumentID" => $so->erplySalesDocumentID
+                 ];
+                if (isset($shippingData['creditToDocumentID'])) {
+                    $payments = $this->getPaymentByDocumentId($shippingData, $param, $so);
                 }
 
                 if ($response_invoice_id_string != '') {
@@ -770,19 +769,20 @@ class ErplySalesOrderService
                 return ['type' => 'fail', 'response' => 'Sales Refund Return Not Synced.'];
             }
         }
-        return ['type' => 'success', 'response' => $response_array];
+        return ['type' => 'success', 'response' => $response_array,'deletedPayments' => $payments ?? []];
     }
 
     public function createRequest($so, $locationId = null)
     {
-        $location_id = null;
-        if ($locationId == null) {
-            $location_id = 8; // Roadhouse Australia
-        } else {
-            $location = Warehouse::where('shopifyId', $locationId)->first();
-            if ($location)
-                $location_id = $location->warehouseID;
-        }
+        //here 8 is australia warehouse 
+        $location_id = 8;
+        // if ($locationId == null) {
+        //     $location_id = 8; // Roadhouse Australia
+        // } else {
+        //     $location = Warehouse::where('shopifyId', $locationId)->first();
+        //     if ($location)
+        //         $location_id = $location->warehouseID;
+        // }
         if ($location_id != null) {
             return [
                 "requestName" => "saveSalesDocument",
@@ -820,7 +820,9 @@ class ErplySalesOrderService
 
         $jsonData = json_encode($bundleArray, true);
 
+
         $response  = $this->api->sendRequest($jsonData, $param, 1);
+
 
         if (isset($response['status']) && $response['status']['responseStatus'] == 'ok' && $response['status']['errorCode'] == 0) {
             if (isset($response['requests'])) {
@@ -831,7 +833,6 @@ class ErplySalesOrderService
                     ->pluck('paymentID')
                     ->values()
                     ->toArray();
-
 
                 $deleteArray = [];
 
@@ -872,11 +873,55 @@ class ErplySalesOrderService
 
                         $refundsModel->update(['credit_invoice_deleted' => 2]);
                     }
-                }else{
+                } else {
                     return 'not found';
                 }
             }
         }
         return $deleteResponse;
+    }
+
+
+    public function deletePaymentCredit($req)
+    {
+        return 'This is use for payment credit invoice deleted this work well we just comment for right now  ';
+        $from = $req->from ?? 0;
+        $to = $from + $req->limit ?? 10;
+        $salesDocumentId = $this->saleDocumentId();
+        $salesDocumentId = array_values($salesDocumentId);
+
+        // Filter by key
+        $filteredSales = array_filter($salesDocumentId, function ($key) use ($from, $to) {
+            return $key >= $from && $key <= $to;
+        }, ARRAY_FILTER_USE_KEY);
+
+        foreach ($filteredSales as $key => $value) {
+
+            $shippingArray['creditToDocumentID'] =  $value;
+            $shippingArray['sessionKey'] =  $this->api->client->sessionKey;
+            $shippingArray['clientCode'] =   $this->api->client->clientCode;
+
+            $param = array(
+                "lang" => 'eng',
+                "responseType" => "json",
+                "sessionKey" => $this->api->client->sessionKey
+            );
+
+            $refundsModel = null;
+
+            $deleted =  $this->getPaymentByDocumentId($shippingArray, $param, $refundsModel);
+            dump('deleted ', $key);
+        }
+        return 'out';
+    }
+
+
+    public function saleDocumentId()
+    {
+
+        return  [
+            0 => 14143,
+           
+        ];
     }
 }
